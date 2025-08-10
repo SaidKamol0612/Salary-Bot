@@ -38,6 +38,8 @@ async def cmd_start(message: Message, state: FSMContext):
         if not u:
             start_msg += "Iltimos, botdan foydalanishni davom ettirish uchun avval o‘zingizning <b>haqiqiy ismingizni</b> yuboring."
             await state.set_state(RegistrationState.request_name)
+        else:
+            await state.clear()
     else:
         start_msg = "Assalomu alaykum, guruh a'zolari! 👋"
 

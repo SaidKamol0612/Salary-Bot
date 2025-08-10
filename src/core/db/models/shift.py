@@ -16,8 +16,9 @@ if TYPE_CHECKING:
 class Shift(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     date: Mapped[py_date] = mapped_column(Date)
-    start_time: Mapped[time]
-    end_time: Mapped[time]
+    count_dough: Mapped[int] = mapped_column(default=0, nullable=True)
+    start_time: Mapped[time] = mapped_column(nullable=True)
+    end_time: Mapped[time] = mapped_column(nullable=True)
     shift_type: Mapped[ShiftType] = mapped_column(
         Enum(ShiftType, native_enum=False), nullable=False
     )

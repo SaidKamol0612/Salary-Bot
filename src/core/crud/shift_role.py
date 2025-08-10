@@ -13,7 +13,6 @@ class ShiftRoleCRUD:
     ) -> None:
         shift_roles = []
         for role_name in roles:
-            print(roles)
             role = await RoleCRUD.get_role_by_name(session, role_name)
             if role is None:
                 raise ValueError(f"❌ Role not found: {role_name}")

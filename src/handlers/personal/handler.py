@@ -10,7 +10,7 @@ from core.db import db_helper
 from core.crud import UserCRUD, ShiftCRUD, ShiftRoleCRUD, RoleCRUD, PayoutCRUD
 from core.config import settings
 from keyboards.reply import get_markup_by_list
-from utils import ReportGenerator
+from utils import ReportGenerator, AdminUtil
 
 
 router = Router()
@@ -51,7 +51,7 @@ async def request_report(message: Message, state: FSMContext):
         shifts = await ShiftCRUD.get_shifts(session, worker.id)
         payouts = await PayoutCRUD.get_payouts(session, worker.id)
 
-        report = await ReportGenerator.gen_report(session, worker, shifts, payouts)
+        report = await ReportGenerator.calculate_total(session, worker, shifts, payouts)
         await message.reply(report)
         return
 
@@ -86,7 +86,7 @@ async def show_report(message: Message, state: FSMContext):
     shifts = await ShiftCRUD.get_shifts(session, worker.id)
     payouts = await PayoutCRUD.get_payouts(session, worker.id)
 
-    report = await ReportGenerator.gen_report(session, worker, shifts, payouts)
+    report = await ReportGenerator.calculate_total(session, worker, shifts, payouts)
     await message.reply(report)
 
 
@@ -110,26 +110,30 @@ async def request_report(message: Message, state: FSMContext):
 
 
 @router.message(F.text, AdminState.choose_worker_for_payout)
-async def show_report(message: Message, state: FSMContext):
-    txt = message.text.strip()
+async def choose_worker_for_payout(message: Message, state: FSMContext):
+    worker_name = message.text.strip()
 
-    if txt == "🔙 Bekor qilib ortga qaytish.":
+    if worker_name == "🔙 Bekor qilib ortga qaytish.":
         await state.clear()
         await message.reply("✅ Bekor qilindi.", reply_markup=ReplyKeyboardRemove())
         return
 
     async with db_helper.session_factory() as session:
-        worker = await UserCRUD.get_user_by_name(session, txt)
+        worker = await UserCRUD.get_user_by_name(session, worker_name)
 
     if not worker:
-        await message.answer("⚠️ Bunday ishchi yo'q.")
+        await message.answer(f"⚠️ <b>{worker_name}</b> ismli ishchi topilmadi.")
         return
 
-    await state.update_data(user_name=worker.name)
-    await state.update_data(user_id=worker.id)
+    await state.update_data(
+        user_name=worker.name, user_id=worker.id, user_tg_id=worker.tg_id
+    )
+
     await state.set_state(AdminState.request_amount)
+
     await message.reply(
-        f"<b>{worker.name}</b>ga to'lamoqchi bo'lgan pul miqdorini jo'nating. Bekor qilish uchun 0 yuboring.",
+        f"<b>{worker.name}</b>ga to'lamoqchi bo'lgan pul miqdorini jo'nating.\n"
+        f"Bekor qilish uchun <b>0</b> yuboring.",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -163,7 +167,10 @@ async def show_report(message: Message, state: FSMContext):
             session, data.get("user_id"), data.get("amount"), date, txt
         )
 
-    txt = f"✅ Tayyor. {date} sanada <b>{data.get('user_name')}</b>ga {data.get('amount')} so'm miqdorida to'lov amalga oshirildi."
+    txt_for_worker = f"✅ Sizga {date.strftime('%d/%m/%Y')} sanada {txt} sifatida {data.get('amount')} so'm miqdorida to'lov o'tkazildi."
+    txt = f"✅ Tayyor. {date.strftime('%d/%m/%Y')} sanada <b>{data.get('user_name')}</b>ga {data.get('amount')} so'm miqdorida to'lov amalga oshirildi."
+
+    await AdminUtil.send_msg(data.get("user_tg_id"), txt_for_worker)
 
     await state.clear()
     await message.reply(txt, reply_markup=ReplyKeyboardRemove())
