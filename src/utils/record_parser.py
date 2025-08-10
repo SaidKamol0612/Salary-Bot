@@ -29,7 +29,7 @@ def _parse_role_codes(code: str) -> list:
 
 
 def _determine_shift_type(start: time, end: time) -> str:
-    night_start = time(18, 0)
+    night_start = time(19, 0)
     night_end = time(6, 0)
 
     today = datetime.today().date()
@@ -63,11 +63,11 @@ class RecordParser:
             name = name_raw.title()
 
             if re.match(r"^\d+(\.\d+)?$", second_raw):
-                number = float(second_raw) if "." in second_raw else int(second_raw)
+                count = int(second_raw)
                 roles = _parse_role_codes(role_raw)
                 return {
                     "name": name,
-                    "number": number,
+                    "count_dough": count,
                     "shift_type": "night",
                     "roles": roles,
                 }

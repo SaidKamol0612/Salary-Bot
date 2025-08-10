@@ -22,7 +22,7 @@ def _get_shift_duration(start_time: time, end_time: time) -> float:
 
 class ReportGenerator:
     @staticmethod
-    async def calculate_total(
+    async def gen_report(
         session: AsyncSession,
         worker: models.User,
         shifts: list[models.Shift],
@@ -37,10 +37,16 @@ class ReportGenerator:
         report += "Ishlagan smenalar:\n"
         salary = 0
         for shift in shifts:
-            date = shift.date.strftime("%d.%m.%Y")
-            duration_hours = _get_shift_duration(shift.start_time, shift.end_time)
-            duration = f"{shift.start_time} - {shift.end_time} | {duration_hours} soat"
-            type_icon = "☀️ Kunduzgi" if shift.shift_type == "day" else "🌙 Tungi"
+            date_str = shift.date.strftime("%d.%m.%Y")
+            if shift.shift_type == "day":
+                duration_hours = _get_shift_duration(shift.start_time, shift.end_time)
+                duration_or_count = (
+                    f"🕛 {shift.start_time} - {shift.end_time} | {duration_hours} soat"
+                )
+                type_icon = "☀️ Kunduzgi"
+            else:
+                duration_or_count = f"Xamirlar soni: {shift.count_dough}"
+                type_icon = "🌙 Tungi"
 
             # Roles
             roles = []
@@ -75,7 +81,10 @@ class ReportGenerator:
             salary += total
 
             report += (
-                f"📅 {date}\n" f"🕒 {duration}\n" f"{info}\n" f"💵 Jami: {total}\n\n"
+                f"📅 {date_str}\n"
+                f"{duration_or_count}\n"
+                f"{info}\n"
+                f"💵 Jami: {total}\n\n"
             )
 
         total_payout = 0
@@ -83,7 +92,7 @@ class ReportGenerator:
             report += "To'lo'vlar:\n"
             for payout in payouts:
                 report += (
-                    f"\t💵 {payout.paid_at} -> {payout.amount} miqdorda to'lo'v.\n"
+                    f"\t💵 {payout.paid_at.strftime('%d/%m/%Y')} : {payout.amount} miqdorda to'lo'v.\n"
                     f"\tNote: {payout.note}\n"
                 )
                 total_payout += int(payout.amount)
@@ -91,7 +100,7 @@ class ReportGenerator:
         report += (
             "\n<b>📌 Yakuniy natija:</b>\n"
             f"<b>Umumiy oylik:</b> {salary} so'm\n"
-            f"<b>Ummumiy to'langan:</b> {total_payout} so'm\n"
+            f"<b>Umumiy to'langan:</b> {total_payout} so'm\n"
             f"<b>📊 Qoldik oylik:</b> {salary - total_payout} so'm"
         )
 
@@ -105,7 +114,8 @@ class ReportGenerator:
     ) -> str:
         salary = 0
         for shift in shifts:
-            duration_hours = _get_shift_duration(shift.start_time, shift.end_time)
+            if shift.start_time:
+                duration_hours = _get_shift_duration(shift.start_time, shift.end_time)
             # Roles
             roles = []
             shift_roles = await ShiftRoleCRUD.get_shift_roles(session, shift.id)
@@ -120,13 +130,12 @@ class ReportGenerator:
                 )
             total = 0
             for role in roles:
-                if role["name"].title() == "Oshpaz":
+                if role["name"].title() == "Oshpaz" and shift.shift_type == "day":
                     total += 50000
+                elif shift.shift_type == "day":
+                    total += int(role["rate_day"]) * int(duration_hours)
                 else:
-                    if shift.shift_type == "day":
-                        total += int(role["rate_day"]) * int(duration_hours)
-                    else:
-                        total += int(role["rate_night"]) * int(shift.count_dough)
+                    total += int(role["rate_night"]) * int(shift.count_dough)
 
             total += int(shift.bonus)
             salary += total

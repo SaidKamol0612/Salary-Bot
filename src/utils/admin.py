@@ -10,13 +10,15 @@ def _format_data(data: dict) -> str:
     type = "Kunduzgi" if data.get("shift_type") == "day" else "Tungi"
     roles = " ".join([w.title() for w in data.get("roles")])
 
-    text = (
-        f"{d}\n"
-        f"👤 <b>{data.get('name')}</b>\n"
-        f"🕧 Ish vaqti: <b>{data.get('start_time')} - {data.get('end_time')}</b>\n"
-        f"🌗 Smena: <b>{type}</b>\n"
-        f"📌 Rol: <b>{roles}</b>\n"
-    )
+    text = f"{d}\n" f"👤 <b>{data.get('name')}</b>\n"
+    if data.get("start_time"):
+        text += (
+            f"🕧 Ish vaqti: <b>{data.get('start_time')} - {data.get('end_time')}</b>\n"
+        )
+    else:
+        text += f"🥖 Xamirlar soni: <b>{data.get('count_dough')}</b>"
+
+    text += f"🌗 Smena: <b>{type}</b>\n" f"📌 Rol: <b>{roles}</b>\n"
 
     if data.get("bonus", 0) != 0:
         text += f"💵 Qo'shimcha: +{data.get('bonus')}"

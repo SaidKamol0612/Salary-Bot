@@ -51,7 +51,7 @@ async def request_report(message: Message, state: FSMContext):
         shifts = await ShiftCRUD.get_shifts(session, worker.id)
         payouts = await PayoutCRUD.get_payouts(session, worker.id)
 
-        report = await ReportGenerator.calculate_total(session, worker, shifts, payouts)
+        report = await ReportGenerator.gen_report(session, worker, shifts, payouts)
         await message.reply(report)
         return
 
@@ -86,7 +86,7 @@ async def show_report(message: Message, state: FSMContext):
     shifts = await ShiftCRUD.get_shifts(session, worker.id)
     payouts = await PayoutCRUD.get_payouts(session, worker.id)
 
-    report = await ReportGenerator.calculate_total(session, worker, shifts, payouts)
+    report = await ReportGenerator.gen_report(session, worker, shifts, payouts)
     await message.reply(report)
 
 
