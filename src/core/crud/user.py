@@ -19,7 +19,7 @@ class UserCRUD:
         return await session.scalar(stmt)
 
     @staticmethod
-    async def reg_user(session: AsyncSession, tg_id: int, name: str) -> None:
+    async def add_user(session: AsyncSession, tg_id: int, name: str) -> None:
         new_user = models.User(
             tg_id=tg_id, name=name, is_admin=tg_id in settings.admin.admin_ids
         )

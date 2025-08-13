@@ -32,7 +32,7 @@ async def reg_user(message: Message, state: FSMContext):
             await message.answer(txt)
             return
 
-        await UserCRUD.reg_user(session, tg_id, name)
+        await UserCRUD.add_user(session, tg_id, name)
 
     await state.clear()
     await message.answer(
