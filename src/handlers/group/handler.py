@@ -20,7 +20,6 @@ async def set_record(message: Message):
     content = message.text.strip()
     date_str, *records = content.split("\n")
 
-    # Foydalanuvchi bir kunda faqat bitta yozuv yuborishi kerak
     if len(records) > 1:
         await message.reply(
             "⚠️ Bir kishi faqat o‘zi uchun bitta ma’lumot yuborishi mumkin."
