@@ -21,9 +21,7 @@ if [ ! -x "$PYTHON_BIN" ]; then
   mkdir -p "$PYTHON_DIR"
   
   # Скачиваем через wget или curl
-  if command -v wget >/dev/null 2>&1; then
-    wget -O /tmp/$PYTHON_ARCHIVE "$PYTHON_URL"
-  elif command -v curl >/dev/null 2>&1; then
+  if command -v curl >/dev/null 2>&1; then
     curl -L -o /tmp/$PYTHON_ARCHIVE "$PYTHON_URL"
   else
     echo "[ERROR] Нет wget или curl, загрузите архив вручную через Plesk File Manager!"
