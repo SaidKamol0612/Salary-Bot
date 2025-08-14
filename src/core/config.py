@@ -2,7 +2,7 @@ import logging
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PATH = ".env"
@@ -18,7 +18,7 @@ class BotSettings(BaseModel):
 
 
 class DataBaseSettings(BaseModel):
-    url: str
+    url: str | PostgresDsn
     echo: bool = False
     echo_pool: bool = False
     pool_size: int = 50

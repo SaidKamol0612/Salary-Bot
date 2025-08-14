@@ -160,7 +160,6 @@ class ReportGenerator:
         # Get roles assigned to this shift
         shift_roles = await ShiftRoleCRUD.get_shift_roles(session, shift.id)
         roles = []
-        print(shift_roles)
         for sh_role in shift_roles:
             role = await RoleCRUD.get_role_by_id(session, sh_role.role_id)
             roles.append({
@@ -171,7 +170,6 @@ class ReportGenerator:
 
         # Calculate total salary
         total_salary = 0
-        print(roles)
         for role in roles:
             if role["name"].title() == "Oshpaz" and shift.shift_type == "day":
                 total_salary += 50_000
