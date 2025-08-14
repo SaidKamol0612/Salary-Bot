@@ -1,34 +1,62 @@
-#!/bin/bash
-set -e  # если любая команда упадёт — скрипт сразу завершится
+#!/bin/sh
+set -eu  # падать на ошибках и на необъявленных переменных
 
-APP_NAME="salary-bot"   # имя процесса в pm2
-MAIN="src/run.py"       # точка входа бота
-PYTHON_BIN="python3"    # какой Python использовать (убедись что python3 доступен)
+APP_NAME="salary-bot"
+MAIN="src/run.py"
+LOGFILE="app.log"
 VENV=".venv"
+PYTHON_DIR="$HOME/python"
+PYTHON_BIN="$PYTHON_DIR/bin/python3"
 
 echo "[DEPLOY] Starting deployment..."
 
-if ! command -v $PYTHON_BIN &> /dev/null; then
-    echo "[ERROR] Python3 не найден! Проверь, что он установлен на сервере."
+# 1. Проверяем Python
+if [ ! -x "$PYTHON_BIN" ]; then
+  echo "[DEPLOY] Python не найден, скачиваем portable версию..."
+  
+  # Ссылка на готовый бинарник Linux x86_64 (замени версию при необходимости)
+  PYTHON_ARCHIVE="python-3.11.7-x86_64-unknown-linux-gnu.tar.gz"
+  PYTHON_URL="https://github.com/indygreg/python-build-standalone/releases/download/2023.3.2/$PYTHON_ARCHIVE"
+  
+  mkdir -p "$PYTHON_DIR"
+  
+  # Скачиваем через wget или curl
+  if command -v wget >/dev/null 2>&1; then
+    wget -O /tmp/$PYTHON_ARCHIVE "$PYTHON_URL"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -L -o /tmp/$PYTHON_ARCHIVE "$PYTHON_URL"
+  else
+    echo "[ERROR] Нет wget или curl, загрузите архив вручную через Plesk File Manager!"
     exit 1
+  fi
+
+  tar -xvf /tmp/$PYTHON_ARCHIVE -C "$HOME"
+  mv "$HOME"/python-3.11.7-*/ "$PYTHON_DIR"
 fi
 
+# 2. Создаём виртуальное окружение
 if [ ! -d "$VENV" ]; then
-    echo "[DEPLOY] Creating virtual environment..."
-    $PYTHON_BIN -m venv $VENV
+  echo "[DEPLOY] Создаём виртуальное окружение..."
+  "$PYTHON_BIN" -m venv "$VENV"
 fi
 
-echo "[DEPLOY] Installing dependencies..."
-$VENV/bin/pip install --upgrade pip
-$VENV/bin/pip install -r requirements.txt --no-cache-dir
+# 3. Обновляем pip и ставим зависимости
+echo "[DEPLOY] Устанавливаем зависимости..."
+"$VENV/bin/pip" install --upgrade pip
+if [ -f requirements.txt ]; then
+  "$VENV/bin/pip" install -r requirements.txt --no-cache-dir
+fi
 
-if command -v pm2 &> /dev/null; then
-    echo "[DEPLOY] Restarting app with PM2..."
-    pm2 start $MAIN --interpreter $VENV/bin/python --name $APP_NAME --restart-delay 5000
-    pm2 save
+# 4. Запуск приложения
+if command -v pm2 >/dev/null 2>&1; then
+  echo "[DEPLOY] Перезапуск через PM2..."
+  pm2 start "$MAIN" --interpreter "$VENV/bin/python" --name "$APP_NAME" --restart-delay 5000 --update-env
+  pm2 save || true
 else
-    echo "[WARN] PM2 не найден. Запускаю напрямую (бот остановится при закрытии сессии)."
-    nohup $VENV/bin/python $MAIN > app.log 2>&1 &
+  echo "[DEPLOY] PM2 не найден. Запускаем через nohup..."
+  # Убиваем старый процесс, если есть
+  pkill -f "$VENV/bin/python $MAIN" 2>/dev/null || true
+  nohup "$VENV/bin/python" "$MAIN" > "$LOGFILE" 2>&1 &
 fi
 
-echo "[DEPLOY] Done!"
+echo "[DEPLOY] Готово!"
