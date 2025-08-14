@@ -107,11 +107,11 @@ class ReportGenerator:
         return report
 
     @staticmethod
-    async def calculate_total(
+    async def calculate_shifts_total(
         session: AsyncSession,
         shifts: list[models.Shift],
         payouts: list[models.Payout],
-    ) -> str:
+    ) -> int:
         salary = 0
         for shift in shifts:
             if shift.start_time:
@@ -144,3 +144,43 @@ class ReportGenerator:
             for payout in payouts:
                 total_payout += int(payout.amount)
         return salary - total_payout
+
+    @staticmethod
+    async def calculate_shift_total(
+        session: AsyncSession,
+        shift: models.Shift,
+    ) -> int:
+        # Calculate shift duration safely
+        duration_hours = (
+            _get_shift_duration(shift.start_time, shift.end_time)
+            if shift.start_time and shift.end_time
+            else 0
+        )
+
+        # Get roles assigned to this shift
+        shift_roles = await ShiftRoleCRUD.get_shift_roles(session, shift.id)
+        roles = []
+        print(shift_roles)
+        for sh_role in shift_roles:
+            role = await RoleCRUD.get_role_by_id(session, sh_role.role_id)
+            roles.append({
+                "name": role.name.name,
+                "rate_day": role.rate_day,
+                "rate_night": role.rate_night,
+            })
+
+        # Calculate total salary
+        total_salary = 0
+        print(roles)
+        for role in roles:
+            if role["name"].title() == "Oshpaz" and shift.shift_type == "day":
+                total_salary += 50_000
+            elif shift.shift_type == "day":
+                total_salary += int(role["rate_day"]) * int(duration_hours)
+            else:  # night shift
+                total_salary += int(role["rate_night"]) * int(shift.count_dough or 0)
+
+        # Add bonus once per shift
+        total_salary += int(shift.bonus or 0)
+        return total_salary
+
