@@ -1,6 +1,8 @@
+import logging
 from datetime import date
 
 from core.config import settings
+from core.db import models
 
 from .load import BotLoader
 
@@ -23,7 +25,8 @@ def _format_data(data: dict) -> str:
     if data.get("bonus", 0) != 0:
         text += f"💵 Qo'shimcha: +{data.get('bonus')}"
 
-    text += f"Jami(to'lo'vlarni ayirib tashlaganda): {data.get('total')}"
+    text += f"<b>Bugun jami:</b> {data.get('daily_total')}\n"
+    text += f"<b>Umumiy jami(to'lo'vlarni ayirib tashlaganda):</b> {data.get('total')}"
     return text
 
 
@@ -31,13 +34,19 @@ class AdminUtil:
     @staticmethod
     async def send_record_to_admins(data: dict):
         bot = BotLoader.get_bot(settings.bot.token)
-
         text = _format_data(data)
+
         for aid in settings.admin.admin_ids:
-            await bot.send_message(chat_id=aid, text=text)
+            try:
+                await bot.send_message(chat_id=aid, text=text)
+            except Exception as e:
+                logging.warning(f"Message to admin {aid} failed: {e}")
         return text
 
     @staticmethod
     async def send_msg(chat_id: int, msg: str):
         bot = BotLoader.get_bot(settings.bot.token)
-        await bot.send_message(chat_id=chat_id, text=msg)
+        try:
+            await bot.send_message(chat_id=chat_id, text=msg)
+        except Exception as e:
+            logging.warning(f"Message to {chat_id} failed: {e}")

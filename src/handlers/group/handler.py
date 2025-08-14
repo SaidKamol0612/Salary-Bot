@@ -56,7 +56,7 @@ async def set_record(message: Message):
             return
         # Yangi smenani qo‘shish
         try:
-            await ShiftCRUD.add_shift(session, date_obj, data)
+            sh = await ShiftCRUD.add_shift(session, date_obj, data)
         except ValueError as e:
             logging.error(f"Value error: {e}")
             await message.reply(
@@ -69,7 +69,10 @@ async def set_record(message: Message):
         payouts = await PayoutCRUD.get_payouts(session, user.id)
 
         # Umumiy hisobni qo‘shish
-        data["total"] = await ReportGenerator.calculate_total(session, shifts, payouts)
+        data["daily_total"] = await ReportGenerator.calculate_shift_total(session, sh)
+        data["total"] = await ReportGenerator.calculate_shifts_total(
+            session, shifts, payouts
+        )
 
     # Adminlarga yuborish
     txt = await AdminUtil.send_record_to_admins(data)

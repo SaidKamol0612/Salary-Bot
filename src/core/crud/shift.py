@@ -34,6 +34,8 @@ class ShiftCRUD:
 
         await session.commit()
 
+        return shift
+
     @staticmethod
     async def get_shifts(session: AsyncSession, user_id: int) -> list[models.Shift]:
         stmt = select(models.Shift).where(models.Shift.user_id == user_id)
