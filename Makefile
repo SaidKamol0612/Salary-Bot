@@ -3,24 +3,33 @@ MAIN = src/run.py
 VENV = .venv
 
 PYTHON = $(VENV)/bin/python
+PIP = $(PYTHON) -m pip
+
 ifeq ($(OS),Windows_NT)
 	PYTHON = $(VENV)/Scripts/python.exe
+	PIP = $(PYTHON) -m pip
+	CLEAN_CMD = del /S /Q *.pyc & for /d %%p in (__pycache__) do rmdir /S /Q "%%p"
+else
+	CLEAN_CMD = find . -type f -name '*.pyc' -delete && find . -type d -name '__pycache__' -exec rm -rf {} +
 endif
 
-.PHONY: run install clean venv
+.PHONY: run install clean venv deploy freeze
 
 venv:
 	python -m venv $(VENV)
-	$(PYTHON) -m pip install --upgrade pip
+	$(PIP) install --upgrade pip
 
-# Установка зависимостей
 install: venv
-	$(PYTHON) -m pip install -r requirements.txt --no-cache-dir
+	$(PIP) install -r requirements.txt --no-cache-dir
 
 run: venv
 	$(PYTHON) $(MAIN)
 
-# Очистка временных файлов
+deploy: install
+	@echo "Project ready for deployment."
+
+freeze: venv
+	$(PIP) freeze > requirements.txt
+
 clean:
-	find . -type f -name '*.pyc' -delete
-	find . -type d -name '__pycache__' -exec rm -rf {} +
+	$(CLEAN_CMD)
