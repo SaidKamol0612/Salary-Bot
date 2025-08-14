@@ -48,6 +48,9 @@ async def request_report(message: Message, state: FSMContext):
         async with db_helper.session_factory() as session:
             worker = await UserCRUD.get_user_by_tg_id(session, tg_id)
 
+        if not worker:
+            await message.reply("⚠️ Hozir tizimda ro'yhat o'tgan ishchi yo'q.")
+            
         shifts = await ShiftCRUD.get_shifts(session, worker.id)
         payouts = await PayoutCRUD.get_payouts(session, worker.id)
 
